@@ -1,34 +1,55 @@
-import { NextResponse } from 'next/server'; // Import NextResponse from Next.js for handling responses
+import { NextResponse } from 'next/server';
 
-// Replace with your OpenRouter API key and site details
 const OPENROUTER_API_KEY = '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';
 const YOUR_SITE_URL = 'your_site_url';
 const YOUR_SITE_NAME = 'your_site_name';
 
-// System prompt for the AI, providing guidelines on how to respond to users
 const systemPrompt = `
-Act as an AI assistant with expert knowledge about medical information and healthcare. Whenever you provide information, reference details from authoritative sources like the Mayo Clinic, the National Institutes of Health (NIH), or the World Health Organization (WHO). Answer user questions with accurate and helpful medical advice, including details about symptoms, treatments, medications, and other related topics, as if you are drawing knowledge from these trusted sources. If you believe the question does not pertain to medical knowledge or healthcare, apologize and explain that you can only answer questions related to medical and health topics.
-`
-// POST function to handle incoming requests
-export async function POST(req) {
-    const data = await req.json(); // Parse the JSON body of the incoming request
+Act as an AI assistant with expert knowledge in cardiology. Provide detailed information on cardiovascular diseases, treatments, medications, and lifestyle recommendations. Reference authoritative sources like the American Heart Association, Mayo Clinic, and NIH in your responses. Respond in the language requested by the user.
+`;
 
-    // Log data for debugging
+async function translateText(text, sourceLang, targetLang) {
+    // Ensure the API endpoint is correct and the server is configured to handle requests
+    const response = await fetch('https://libretranslate.de/translate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            q: text,
+            source: sourceLang,
+            target: targetLang,
+            format: 'text'
+        })
+    });
+    const rawData = await response;
+    console.log("rr", rawData)
+    const data = await response.json();
+
+    if (!response.ok) {
+        console.error('Translation API Error:', data.error);  // More detailed logging
+        throw new Error(`Translation API returned an error: ${data.error}`);
+    }
+    console.log("output", data.translatedText)
+    return data.translatedText;
+}
+
+export async function POST(req) {
+    const data = await req.json();
+
     console.log('Data received:', data);
 
-    // Validate that data is iterable
     const messagesArray = Array.isArray(data.messages) ? data.messages : [];
-    console.log('message:', messagesArray);
+    const language = data.language || 'en';
+    console.log('message:', messagesArray, 'language:', language);
 
-    // Create the request payload
     const payload = {
         model: 'meta-llama/llama-3.1-8b-instruct:free',
-        messages: [{ role: 'system', content: systemPrompt }, ...messagesArray], // Include the system prompt and user messages
+        messages: [{ role: 'system', content: systemPrompt }, ...messagesArray],
     };
     console.log('payload:', payload);
 
     try {
-        // Send a POST request to the OpenRouter API
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -44,17 +65,16 @@ export async function POST(req) {
             throw new Error(`Error: ${response.statusText}`);
         }
 
-        // Parse the JSON body of the response
         const responseData = await response.json();
-
-        // Assuming the relevant message content is in a predictable part of the responseData
         const messages = responseData.choices.map(choice => choice.message);
+        let messageContent = messages[0].content;
 
-        const messageContent = messages[0].content;
+        // if (language !== 'en') {
+        //     messageContent = await translateText(messageContent, language);
+        // }
 
-        // Send the response without quotes
         return new NextResponse(messageContent, {
-            headers: { 'Content-Type': 'text/plain' }
+            headers: { 'Content-Type': 'application/json' }
         });
 
     } catch (err) {

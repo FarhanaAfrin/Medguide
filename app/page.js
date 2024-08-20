@@ -4,7 +4,6 @@ import { Box, Button, Stack, TextField, Typography, MenuItem, Select, FormContro
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image';
 
-
 export default function Home() {
     const [messages, setMessages] = useState([
         {
@@ -14,7 +13,7 @@ export default function Home() {
     ])
     const [message, setMessage] = useState('')
     const [isLoading, setIsLoading] = useState(false)
-    const [language, setLanguage] = useState('en')
+    const [language, setLanguage] = useState('en') // Language state
 
     const sendMessage = async () => {
         if (!message.trim() || isLoading) return;
@@ -34,7 +33,7 @@ export default function Home() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ messages: [userMessage] }),
+                body: JSON.stringify({ messages: [userMessage], language }), // Pass language in the body
             })
 
             if (!response.ok) {
@@ -101,13 +100,6 @@ export default function Home() {
             sx={{ marginBottom: '10px'}}
             > 
             <Box sx={{ display:'flex', alignItems: 'center'}}>
-            <Image 
-            src=  "/icons/titleicon.png"
-            alt="Logo"
-            width={200}
-            height = {100}
-            marginTop={40}
-            />
             </Box>
             <Typography 
                 variant="h3"
@@ -186,7 +178,7 @@ export default function Home() {
                         </Select>
                     </FormControl>
                     <TextField
-                        label="Message UniGuide"
+                        label="Message MedGuide"
                         fullWidth
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
